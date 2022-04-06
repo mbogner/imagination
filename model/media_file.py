@@ -1,5 +1,10 @@
+from datetime import datetime, timezone
+
+from config import Config
 from logger import logger
+from model.coordinates import Coordinates
 from model.media_type import MediaType
+from model.ts_source import TsSource
 
 
 class MediaFile:
@@ -8,6 +13,12 @@ class MediaFile:
     filename: str
     media_type: MediaType
     dir_path: list[str]
+
+    unix_time_sec: int = None
+    timestamp: datetime = None
+    ts_source: TsSource = None
+
+    coordinates: Coordinates = None
 
     def __init__(self, original_path: str, original_filename: str, filename: str, media_type: MediaType,
                  dir_path: list[str]):
@@ -18,7 +29,23 @@ class MediaFile:
         self.dir_path = dir_path
 
     def __repr__(self):
-        return f'{self.dir_path} {self.filename}.{self.media_type}'
+        if self.has_timestamp():
+            return f'{Config.SYM_CHECK} {self.dir_path} {self.filename}.{self.media_type}, ' \
+                   f'ts={self.timestamp}, ts_source={self.ts_source}'
+        else:
+            return f'{Config.SYM_MULTIPLICATION} {self.dir_path} {self.filename}.{self.media_type}'
+
+    def has_timestamp(self) -> bool:
+        return self.timestamp is not None
+
+    def update_time(self, ts: datetime):
+        if ts is not None:
+            self.timestamp = ts.astimezone(timezone.utc)
+            self.unix_time_sec = int(self.timestamp.timestamp())
+
+    def update_coordinates(self, coordinates: Coordinates):
+        if coordinates is not None:
+            self.coordinates = coordinates
 
     @staticmethod
     def create(source_dir: str, file_dir: str) -> 'MediaFile':

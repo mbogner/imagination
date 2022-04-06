@@ -15,3 +15,13 @@ class Config:
         'LOG_FORMAT',
         '%(asctime)s %(levelname)s [%(threadName)s,%(name)s] %(filename)s:%(lineno)d - %(message)s'
     )
+
+    SYM_CHECK = '✓'
+    SYM_MULTIPLICATION = '✕'
+
+    FILE_PATTERNS = [
+        '/**/*.[jJ][pP][gG]',
+        '/**/*.[jJ][pP][eE][gG]',
+        '/**/*.[mM][oO][vV]',
+        '/**/*.[pP][nN][gG]',
+    ]

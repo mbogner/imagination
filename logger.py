@@ -7,7 +7,7 @@ logging.basicConfig(format=Config.LOG_FORMAT, level=Config.LOG_LEVEL, stream=sys
 logger = logging.getLogger()
 
 libraries = {
-    'config': logging.WARNING,
+    'PIL': logging.WARNING,
 }
 for library, level in libraries.items():
     library_logger = logging.getLogger(library)

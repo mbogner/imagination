@@ -5,6 +5,7 @@ from enum import Enum, unique, auto
 class MediaType(Enum):
     JPG = auto()
     MOV = auto()
+    PNG = auto()
 
     @staticmethod
     def from_string(val: str):
@@ -13,6 +14,8 @@ class MediaType(Enum):
             return MediaType.JPG
         if val == 'mov':
             return MediaType.MOV
+        if val == 'png':
+            return MediaType.PNG
         raise f'invalid media type: {val}'
 
     def __str__(self):
