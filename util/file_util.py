@@ -1,8 +1,12 @@
 import glob
+import os
+from datetime import datetime
 
 from config import Config
 from logger import logger
 from model.media_file import MediaFile
+from model.ts_source import TsSource
+from util.date_time_util import DateTimeUtil
 
 
 class FileUtil:
@@ -16,3 +20,34 @@ class FileUtil:
                 media_files.append(MediaFile.create(source_dir, file))
         logger.info(f"filename(s) prepared: {len(media_files)}")
         return media_files
+
+    @staticmethod
+    def delete_all_files(files: list[MediaFile]) -> None:
+        for file in files:
+            os.remove(file.original_path)
+
+    @staticmethod
+    def get_last_file_change_ts(file) -> datetime:
+        mtime: float = os.path.getmtime(file)
+        ts = DateTimeUtil.parse_unix_time_sec(int(mtime))
+        return ts
+
+    @staticmethod
+    def enrich_from_mtime(files: list[MediaFile]) -> None:
+        for file in files:
+            if file.has_timestamp():
+                continue
+            file.update_time(FileUtil.get_last_file_change_ts(file.original_path))
+            file.ts_source = TsSource.MTIME
+
+    @staticmethod
+    def enrich_from_folder_name(files: list[MediaFile]) -> None:
+        for file in files:
+            if file.has_timestamp():
+                continue
+            file.update_time(FileUtil.get_last_file_change_ts(file.original_path))
+            file.ts_source = TsSource.MTIME
+
+    @staticmethod
+    def join_path(folders: list[str], separator: str = ' ') -> str:
+        return separator.join(folders)

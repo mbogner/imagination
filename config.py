@@ -1,5 +1,7 @@
 import os
 
+from util.var import Var
+
 
 class Config:
     APP_NAME = os.environ.get('APP_NAME', 'imagination')
@@ -24,4 +26,7 @@ class Config:
         '/**/*.[jJ][pP][eE][gG]',
         '/**/*.[mM][oO][vV]',
         '/**/*.[pP][nN][gG]',
+        '/**/*.[mM][pP]4',
     ]
+
+    DELETE_DUPLICATES = Var.to_bool(os.environ.get('DELETE_DUPLICATES', 'false'))

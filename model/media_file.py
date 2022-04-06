@@ -20,6 +20,9 @@ class MediaFile:
 
     coordinates: Coordinates = None
 
+    md5: str = None
+    duplicate_of: 'MediaFile' = None
+
     def __init__(self, original_path: str, original_filename: str, filename: str, media_type: MediaType,
                  dir_path: list[str]):
         self.original_path = original_path
@@ -34,6 +37,9 @@ class MediaFile:
                    f'ts={self.timestamp}, ts_source={self.ts_source}'
         else:
             return f'{Config.SYM_MULTIPLICATION} {self.dir_path} {self.filename}.{self.media_type}'
+
+    def __lt__(self, other):
+        return self.original_filename.lower() < other.original_filename.lower()
 
     def has_timestamp(self) -> bool:
         return self.timestamp is not None

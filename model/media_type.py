@@ -6,6 +6,7 @@ class MediaType(Enum):
     JPG = auto()
     MOV = auto()
     PNG = auto()
+    MP4 = auto()
 
     @staticmethod
     def from_string(val: str):
@@ -16,7 +17,9 @@ class MediaType(Enum):
             return MediaType.MOV
         if val == 'png':
             return MediaType.PNG
-        raise f'invalid media type: {val}'
+        if val == 'mp4':
+            return MediaType.MP4
+        raise Exception(f'invalid media type: {val}')
 
     def __str__(self):
         return self.name.lower()

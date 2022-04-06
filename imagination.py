@@ -1,9 +1,12 @@
 from config import Config
 from logger import logger
+from model.match_type import MatchType
 from model.media_file import MediaFile
+from util.duplicate_resolver import DuplicateResolver
 from util.exif_reader import ExifReader
 from util.file_util import FileUtil
-from util.filename_parser import FilenameParser
+from util.hash_util import HashUtil
+from util.pattern_parser import PatternParser
 from util.string_util import parse_arguments
 
 
@@ -18,8 +21,20 @@ class App:
     def run(self):
         logger.debug(f"source_dir={self.source_dir}, target_dir={self.target_dir}")
         media: list[MediaFile] = FileUtil.slurp_filenames(self.source_dir)
+        media.sort()
+
+        # try to read dates
         ExifReader.enrich_with_exif_data(media)
-        FilenameParser.update_from_filename(media)
+        PatternParser.update_from_pattern(media, MatchType.FILE)
+        PatternParser.update_from_pattern(media, MatchType.DIR)
+
+        FileUtil.enrich_from_mtime([item for item in media if not item.has_timestamp()])
+
+        # create md5 of all files and get rid of duplicates
+        # media_hash = HashUtil.hash_files(media)
+        # del media
+        # DuplicateResolver.dedup(media_hash)
+
         logger.info('done')
 
 

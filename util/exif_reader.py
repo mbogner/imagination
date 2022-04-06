@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+import calendar
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import piexif
@@ -9,6 +10,7 @@ from model.coordinates import Coordinates
 from model.media_file import MediaFile
 from model.media_type import MediaType
 from model.ts_source import TsSource
+from util.date_time_util import DateTimeUtil
 
 
 class ExifReader:
@@ -19,11 +21,22 @@ class ExifReader:
         logger.info('enriching media files from exif')
         for media_file in media_files:
             if media_file.media_type == MediaType.JPG:
+                logger.info(f'try enriching {media_file} from exif')
+
                 img = Image.open(media_file.original_path)
-                raw = piexif.load(img.info.get('exif'))
+                raw_exif = img.info.get('exif')
+                if img.info.get('exif') is None:
+                    continue
+                raw = piexif.load(raw_exif)
 
                 exif = ExifReader.exif_to_hash(raw['Exif'], ExifTags.TAGS)
-                timestamp = ExifReader.get_timestamp(exif, ExifReader.codec)
+                timestamp = ExifReader.get_timestamp_from_exif(exif, ExifReader.codec)
+
+                # alternative for getting timestamp
+                if timestamp is None and '0th' in raw:
+                    zeroth = ExifReader.exif_to_hash(raw['0th'], ExifTags.TAGS)
+                    timestamp = ExifReader.get_timestamp_from_0th(zeroth, ExifReader.codec)
+
                 media_file.update_time(timestamp)
 
                 gps = ExifReader.exif_to_hash(raw['GPS'], ExifTags.GPSTAGS)
@@ -45,12 +58,36 @@ class ExifReader:
         return response
 
     @staticmethod
-    def get_timestamp(exif, codec: str = 'utf-8') -> Optional[datetime]:
-        if 'DateTimeOriginal' in exif and 'OffsetTimeOriginal' in exif:
-            ts = exif['DateTimeOriginal'].decode(codec)
-            offset = exif['OffsetTimeOriginal'].decode(codec)
-            return datetime.strptime(f'{ts}{offset}', "%Y:%m:%d %H:%M:%S%z").astimezone(tz=timezone.utc)
+    def get_timestamp_from_exif(exif, codec: str = 'utf-8') -> Optional[datetime]:
+        if 'DateTimeOriginal' in exif:
+            ts: str = exif['DateTimeOriginal'].decode(codec)
+            if ts.startswith('0000'):
+                return None
+            ts = ExifReader.fix_timestamp_str(ts)
+
+            offset = '+00:00'
+            if 'OffsetTimeOriginal' in exif:
+                offset = exif['OffsetTimeOriginal'].decode(codec)
+                return datetime.strptime(f'{ts}{offset}', "%Y:%m:%d %H:%M:%S%z")
+
+            parsed = datetime.strptime(f'{ts}', "%Y:%m:%d %H:%M:%S")
+            DateTimeUtil.timezone_datetime(parsed)
+            return parsed
         return None
+
+    @staticmethod
+    def get_timestamp_from_0th(zeroth, codec: str = 'utf-8') -> Optional[datetime]:
+        if 'DateTime' in zeroth:
+            ts: str = zeroth['DateTime'].decode(codec)
+            ts = ExifReader.fix_timestamp_str(ts)
+            if ts.startswith('0000'):
+                return None
+            return DateTimeUtil.timezone_datetime(datetime.strptime(f'{ts}', "%Y:%m:%d %H:%M:%S"))
+        return None
+
+    @staticmethod
+    def fix_timestamp_str(ts: str) -> str:
+        return ts.replace(" at ", " ").replace(".", ":").replace(" 24:", " 00:")
 
     @staticmethod
     def change_to_decimal(fraction: tuple[int, int]) -> Optional[float]:

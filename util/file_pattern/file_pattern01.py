@@ -1,3 +1,4 @@
+import re
 import zoneinfo
 from datetime import datetime
 
@@ -6,7 +7,8 @@ from model.media_file import MediaFile
 from model.ts_source import TsSource
 
 
-class EvalPattern01:
+class FilePattern01:
+    PATTERN = re.compile(r"^[a-zA-Z\s]*(\d?\d?\d\d).(\d\d).(\d\d)\s*(at|[Tt ])?\s*(\d\d).(\d\d).(\d\d).*$")
     TZ = zoneinfo.ZoneInfo('Europe/Vienna')
 
     @staticmethod
@@ -20,10 +22,11 @@ class EvalPattern01:
             minute = int(minute)
             second = int(second)
 
-            if year < 85:
-                year += 2000
-            else:
-                year += 1900
+            if year < 1900:
+                if year < 85:
+                    year += 2000
+                else:
+                    year += 1900
             logger.debug(f'year={year}, month={month}, day={day}, '
                          f'hour={hour}, minute={minute}, second={second}')
 
@@ -35,9 +38,9 @@ class EvalPattern01:
                 minute=minute,
                 second=second,
                 microsecond=0,
-                tzinfo=EvalPattern01.TZ
+                tzinfo=FilePattern01.TZ
             )
             logger.debug(f'parsed timestamp={ts}')
 
             media_file.update_time(ts)
-            media_file.ts_source = TsSource.FILENAME
+            media_file.ts_source = TsSource.FILENAME1
