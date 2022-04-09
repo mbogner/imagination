@@ -1,3 +1,4 @@
+import calendar
 import re
 import zoneinfo
 from datetime import datetime
@@ -7,27 +8,25 @@ from model.media_file import MediaFile
 from model.ts_source import TsSource
 
 
-class DirPattern01:
-    PATTERN = re.compile(r"^(\d{4})[-_.]?(\d{2})[-_.]?(\d{2}).*")
+class FilePattern98:
+    PATTERN = re.compile(r"^(\d\d\d\d)[-_.\s](\d\d).*")
     TZ = zoneinfo.ZoneInfo('Europe/Vienna')
-    JOINED = False
 
     @staticmethod
     def eval(media_file: MediaFile, groups) -> None:
-        if len(groups) == 3:
-            year, month, day = groups
+        if len(groups) == 2:
+            year, month = groups
             year = int(year)
             month = int(month)
-            day = int(day)
 
             ts = datetime(
                 year=year,
                 month=month,
-                day=day,
+                day=calendar.monthrange(year, month)[1],
                 hour=12,
                 minute=0,
                 second=0,
                 microsecond=0,
-                tzinfo=DirPattern01.TZ
+                tzinfo=FilePattern98.TZ
             )
-            media_file.update_time(ts, TsSource.DIR_YEAR_MONTH_DAY)
+            media_file.update_time(ts, TsSource.FILENAME_YEAR_MONTH2, True)

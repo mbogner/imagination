@@ -25,3 +25,10 @@ def parse_arguments():
     source = check_directory(args.source, required=True, create=False)
     target = check_directory(args.target, required=False, create=True)
     return source, target
+
+
+def expand_to_len(orig: int, wanted_len: int, prefix: str = '0', postfix: str = '') -> str:
+    res = f"{orig}"
+    while len(res) < wanted_len:
+        res = f"{prefix}{res}{postfix}"
+    return res

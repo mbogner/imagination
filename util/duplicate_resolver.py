@@ -1,5 +1,6 @@
 from logger import logger
 from model.media_file import MediaFile
+from model.ts_source import TsSource
 
 
 class DuplicateResolver:
@@ -10,8 +11,9 @@ class DuplicateResolver:
         for key, media_file_list in media_hash.items():
             if len(media_file_list) < 2:
                 continue
-            oldest = media_file_list[0]
+            selected = media_file_list[0]
             for media_file in media_file_list:
-                if media_file.timestamp < oldest.timestamp:
-                    oldest = media_file
-            media_hash[key] = [oldest]
+                if media_file.ts_source == TsSource.EXIF or media_file.timestamp < selected.timestamp:
+                    selected = media_file
+            media_hash[key] = [selected]
+        logger.info('dedup files done')

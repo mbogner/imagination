@@ -33,20 +33,9 @@ class FileUtil:
         return ts
 
     @staticmethod
-    def enrich_from_mtime(files: list[MediaFile]) -> None:
+    def enrich_from_file_mtime(files: list[MediaFile]) -> None:
         for file in files:
-            if file.has_timestamp():
-                continue
-            file.update_time(FileUtil.get_last_file_change_ts(file.original_path))
-            file.ts_source = TsSource.MTIME
-
-    @staticmethod
-    def enrich_from_folder_name(files: list[MediaFile]) -> None:
-        for file in files:
-            if file.has_timestamp():
-                continue
-            file.update_time(FileUtil.get_last_file_change_ts(file.original_path))
-            file.ts_source = TsSource.MTIME
+            file.update_time(FileUtil.get_last_file_change_ts(file.original_path), TsSource.MTIME)
 
     @staticmethod
     def join_path(folders: list[str], separator: str = ' ') -> str:

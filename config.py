@@ -27,6 +27,7 @@ class Config:
         '/**/*.[mM][oO][vV]',
         '/**/*.[pP][nN][gG]',
         '/**/*.[mM][pP]4',
+        '/**/*.[aA][rR][wW]',
     ]
 
     DELETE_DUPLICATES = Var.to_bool(os.environ.get('DELETE_DUPLICATES', 'false'))

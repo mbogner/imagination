@@ -2,15 +2,13 @@ import re
 import zoneinfo
 from datetime import datetime
 
-from logger import logger
 from model.media_file import MediaFile
 from model.ts_source import TsSource
 
 
-class DirPattern01:
-    PATTERN = re.compile(r"^(\d{4})[-_.]?(\d{2})[-_.]?(\d{2}).*")
+class FilePattern96:
+    PATTERN = re.compile(r"^(\d\d\d\d)[-_\s](\d\d)[-_\s](\d\d).*")
     TZ = zoneinfo.ZoneInfo('Europe/Vienna')
-    JOINED = False
 
     @staticmethod
     def eval(media_file: MediaFile, groups) -> None:
@@ -28,6 +26,7 @@ class DirPattern01:
                 minute=0,
                 second=0,
                 microsecond=0,
-                tzinfo=DirPattern01.TZ
+                tzinfo=FilePattern96.TZ
             )
-            media_file.update_time(ts, TsSource.DIR_YEAR_MONTH_DAY)
+
+            media_file.update_time(ts, TsSource.FILENAME_YEAR_MONTH_DAY1, True)

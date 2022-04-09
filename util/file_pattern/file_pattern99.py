@@ -7,27 +7,24 @@ from model.media_file import MediaFile
 from model.ts_source import TsSource
 
 
-class DirPattern01:
-    PATTERN = re.compile(r"^(\d{4})[-_.]?(\d{2})[-_.]?(\d{2}).*")
+class FilePattern99:
+    PATTERN = re.compile(r"^(\d\d\d\d)[-_.\s].*")
     TZ = zoneinfo.ZoneInfo('Europe/Vienna')
-    JOINED = False
 
     @staticmethod
     def eval(media_file: MediaFile, groups) -> None:
-        if len(groups) == 3:
-            year, month, day = groups
+        if len(groups) == 1:
+            year = groups[0]
             year = int(year)
-            month = int(month)
-            day = int(day)
 
             ts = datetime(
                 year=year,
-                month=month,
-                day=day,
+                month=12,
+                day=31,
                 hour=12,
                 minute=0,
                 second=0,
                 microsecond=0,
-                tzinfo=DirPattern01.TZ
+                tzinfo=FilePattern99.TZ
             )
-            media_file.update_time(ts, TsSource.DIR_YEAR_MONTH_DAY)
+            media_file.update_time(ts, TsSource.FILENAME_YEAR, True)

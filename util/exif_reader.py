@@ -1,5 +1,4 @@
-import calendar
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from typing import Optional
 
 import piexif
@@ -17,17 +16,32 @@ class ExifReader:
     codec = 'utf-8'
 
     @staticmethod
-    def enrich_with_exif_data(media_files: list[MediaFile]) -> None:
-        logger.info('enriching media files from exif')
-        for media_file in media_files:
-            if media_file.media_type == MediaType.JPG:
-                logger.info(f'try enriching {media_file} from exif')
+    def load(media_file: MediaFile) -> Optional[dict]:
+        if media_file.media_type == MediaType.JPG:
+            img = Image.open(media_file.original_path)
+            raw_exif = img.info.get('exif')
+            if raw_exif is None:
+                return None
+            return piexif.load(raw_exif)
+        elif media_file.media_type == MediaType.ARW:
+            raw = piexif.load(media_file.original_path)
+            if 'Exif' not in raw:
+                return None
+            return raw
+        else:
+            return None
 
-                img = Image.open(media_file.original_path)
-                raw_exif = img.info.get('exif')
-                if img.info.get('exif') is None:
+    @staticmethod
+    def enrich_with_exif_data(media_files: list[MediaFile]) -> None:
+        logger.info('enriching files from exif')
+        for media_file in media_files:
+            if media_file.media_type == MediaType.JPG or media_file.media_type == MediaType.ARW:
+
+                raw = ExifReader.load(media_file)
+                if raw is None:
                     continue
-                raw = piexif.load(raw_exif)
+                if 'Exif' not in raw:
+                    return None
 
                 exif = ExifReader.exif_to_hash(raw['Exif'], ExifTags.TAGS)
                 timestamp = ExifReader.get_timestamp_from_exif(exif, ExifReader.codec)
@@ -37,15 +51,12 @@ class ExifReader:
                     zeroth = ExifReader.exif_to_hash(raw['0th'], ExifTags.TAGS)
                     timestamp = ExifReader.get_timestamp_from_0th(zeroth, ExifReader.codec)
 
-                media_file.update_time(timestamp)
+                media_file.update_time(timestamp, TsSource.EXIF, True)
 
                 gps = ExifReader.exif_to_hash(raw['GPS'], ExifTags.GPSTAGS)
                 coordinates = ExifReader.get_coordinates(gps)
                 media_file.update_coordinates(coordinates)
-
-                if media_file.has_timestamp():
-                    media_file.ts_source = TsSource.EXIF
-                    logger.debug(f"updated {media_file} from exif")
+        logger.info('enriching files from exif done')
 
     @staticmethod
     def exif_to_hash(data, tags) -> dict[str, str]:
