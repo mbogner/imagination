@@ -20,6 +20,8 @@ class DirPattern01:
             month = int(month)
             day = int(day)
 
+            # logger.debug(f'year={year}, month={month}, day={day}, file={media_file.original_path}')
+
             ts = datetime(
                 year=year,
                 month=month,

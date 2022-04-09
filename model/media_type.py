@@ -8,6 +8,7 @@ class MediaType(Enum):
     PNG = auto()
     MP4 = auto()
     ARW = auto()
+    AVI = auto()
 
     @staticmethod
     def from_string(val: str):
@@ -20,6 +21,8 @@ class MediaType(Enum):
             return MediaType.PNG
         if val == 'mp4':
             return MediaType.MP4
+        if val == 'avi':
+            return MediaType.AVI
         if val == 'arw':
             return MediaType.ARW
         raise Exception(f'invalid media type: {val}')

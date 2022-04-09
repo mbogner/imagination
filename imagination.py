@@ -18,8 +18,10 @@ class App:
     target_dir: str
     write_exif: bool
     copy_files: bool
+    delete_duplicates: bool
 
-    def __init__(self, source_dir: str, target_dir: str, write_exif: bool = False, copy_files: bool = False):
+    def __init__(self, source_dir: str, target_dir: str, write_exif: bool = False, copy_files: bool = False,
+                 delete_duplicates: bool = False):
         self.source_dir = source_dir
         self.target_dir = target_dir
 
@@ -30,6 +32,10 @@ class App:
         self.copy_files = copy_files
         if self.copy_files is None:
             self.copy_files = False
+
+        self.delete_duplicates = delete_duplicates
+        if self.delete_duplicates is None:
+            self.delete_duplicates = False
 
     def run(self):
         logger.debug(f"source_dir={self.source_dir}, target_dir={self.target_dir}")
@@ -43,7 +49,7 @@ class App:
         # create md5 of all files and get rid of duplicates
         media_hash = HashUtil.hash_files(media)
         del media  # use the new hash from now
-        DuplicateResolver.dedup(media_hash)
+        DuplicateResolver.dedup(media_hash, self.delete_duplicates)
 
         # translate the hash back to list
         enriched = [item[0] for item in media_hash.values()]
@@ -65,8 +71,8 @@ class App:
 
 def main():
     logger.info(f"starting {Config.APP_NAME}, v{Config.APP_VERSION}, environment: {Config.APP_ENVIRONMENT}")
-    source, target, write_exif, copy_files = parse_arguments()
-    App(source, target, write_exif, copy_files).run()
+    source, target, write_exif, copy_files, delete_duplicates = parse_arguments()
+    App(source, target, write_exif, copy_files, delete_duplicates).run()
 
 
 def parse_arguments():
@@ -74,11 +80,14 @@ def parse_arguments():
     parser.add_argument('--source', type=str, help='source directory', required=True)
     parser.add_argument('--target', type=str, help='target directory', required=True)
     parser.add_argument('--write_exif', action=argparse.BooleanOptionalAction, help='write missing exif')
-    parser.add_argument('--copy_files', action=argparse.BooleanOptionalAction, help='copy instead of move files to target')
+    parser.add_argument('--copy_files', action=argparse.BooleanOptionalAction,
+                        help='copy instead of move files to target')
+    parser.add_argument('--delete_duplicates', action=argparse.BooleanOptionalAction,
+                        help='delete duplicated files in source')
     args = parser.parse_args()
     source = FileUtil.check_directory(args.source, required=True, create=False)
     target = FileUtil.check_directory(args.target, required=False, create=True)
-    return source, target, args.write_exif, args.copy_files
+    return source, target, args.write_exif, args.copy_files, args.delete_duplicates
 
 
 if __name__ == "__main__":

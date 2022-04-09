@@ -23,7 +23,7 @@
       </ENTRIES>
     </EXTENSION>
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/imagination.py" />
-    <option name="PARAMETERS" value="--source=tmp/tank --target=tmp/target --write_exif --copy_files" />
+    <option name="PARAMETERS" value="--source=tmp/tank --target=tmp/target --write_exif --delete_duplicates" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />
