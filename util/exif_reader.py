@@ -76,7 +76,6 @@ class ExifReader:
                 return None
             ts = ExifReader.fix_timestamp_str(ts)
 
-            offset = '+00:00'
             if 'OffsetTimeOriginal' in exif:
                 offset = exif['OffsetTimeOriginal'].decode(codec)
                 return datetime.strptime(f'{ts}{offset}', "%Y:%m:%d %H:%M:%S%z")

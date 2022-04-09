@@ -26,6 +26,7 @@ class MediaFile:
 
     target_dir = None
     target_filename = None
+    target = None
 
     def __init__(self, original_path: str, original_filename: str, filename: str, media_type: MediaType,
                  dir_path: list[str]):
