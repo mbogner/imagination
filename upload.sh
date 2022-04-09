@@ -1,2 +1,2 @@
 #!/bin/bash
-rsync -avu --progress tmp/target/ manuel@tank:/data/manuel/attic/pictures2/
+rsync -avu --delete --progress tmp/target/ manuel@tank:/data/manuel/attic/pictures2/
