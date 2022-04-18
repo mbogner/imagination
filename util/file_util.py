@@ -65,6 +65,10 @@ class FileUtil:
         logger.info(f"moving files, copy_files={copy_files}")
         for media_file in media_files:
             FileUtil.check_directory(media_file.target_dir, required=False, create=True)
+            # ignore existing
+            if os.path.isfile(media_file.target):
+                os.remove(media_file.original_path)
+                continue
             if copy_files:
                 shutil.copy(media_file.original_path, media_file.target)
             else:

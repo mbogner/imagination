@@ -17,7 +17,6 @@ class UniqueFilenameUtil:
                                          f"{StringUtil.expand_to_len(ts.minute, 2)}-" \
                                          f"{StringUtil.expand_to_len(ts.second, 2)}_" \
                                          f"i{StringUtil.expand_to_len(media_file.index, 3)}" \
-                                         f"_({media_file.filename})" \
                                          f".{media_file.media_type}"
             media_file.target = f'{media_file.target_dir}/{media_file.target_filename}'
 

@@ -7,7 +7,9 @@ from model.ts_source import TsSource
 
 
 class FilePattern03:
-    PATTERN = re.compile(r"^(\d\d\d\d)[-_\s](\d\d)[-_\s](\d\d)[-_\s]+(\d\d)[-_:\s](\d\d)[-_:\s](\d\d).*")
+    PATTERN = re.compile(
+        r".*(\d{2}?\d{2})(\d{2})(\d{2})[-_\s](\d{2})(\d{2})(\d{2})[.].*"
+    )
     TZ = zoneinfo.ZoneInfo('Europe/Vienna')
 
     @staticmethod
@@ -21,6 +23,12 @@ class FilePattern03:
             minute = int(minute)
             second = int(second)
 
+            if year < 1900:
+                if year < 85:
+                    year += 2000
+                else:
+                    year += 1900
+
             ts = datetime(
                 year=year,
                 month=month,
@@ -32,4 +40,4 @@ class FilePattern03:
                 tzinfo=FilePattern03.TZ
             )
 
-            media_file.update_time(ts, TsSource.FILENAME3, True)
+            media_file.update_time(ts, TsSource.FILENAME2, True)

@@ -6,6 +6,7 @@ from util.dir_pattern.dir_pattern02 import DirPattern02
 from util.dir_pattern.dir_pattern03 import DirPattern03
 from util.file_pattern.file_pattern01 import FilePattern01
 from util.file_pattern.file_pattern02 import FilePattern02
+from util.file_pattern.file_pattern03 import FilePattern03
 from util.file_pattern.file_pattern96 import FilePattern96
 from util.file_pattern.file_pattern97 import FilePattern97
 from util.file_pattern.file_pattern98 import FilePattern98
@@ -14,7 +15,8 @@ from util.file_util import FileUtil
 
 
 class PatternParser:
-    FILE_PATTERNS = [FilePattern01, FilePattern02, FilePattern96, FilePattern97, FilePattern98, FilePattern99]
+    FILE_PATTERNS = [FilePattern01, FilePattern02, FilePattern03, FilePattern96, FilePattern97, FilePattern98,
+                     FilePattern99]
     DIR_PATTERNS = [DirPattern01, DirPattern02, DirPattern03]
 
     @staticmethod
