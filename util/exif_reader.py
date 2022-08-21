@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 import piexif
+import pyheif
 from PIL import Image, ExifTags
 
 from logger import logger
@@ -28,6 +29,16 @@ class ExifReader:
             if 'Exif' not in raw:
                 return None
             return raw
+        elif media_file.media_type == MediaType.HEIC:
+            with open(media_file.original_path, 'rb') as file:
+                heif = pyheif.read(file)
+                if heif is None or heif.metadata is None:
+                    return None
+                for metadata in heif.metadata:
+                    if 'type' not in metadata or 'Exif' != metadata['type'] or 'data' not in metadata:
+                        continue
+                    return piexif.load(metadata['data'])
+            return None
         else:
             return None
 
@@ -35,13 +46,14 @@ class ExifReader:
     def enrich_with_exif_data(media_files: list[MediaFile]) -> None:
         logger.info('enriching files from exif')
         for media_file in media_files:
-            if media_file.media_type == MediaType.JPG or media_file.media_type == MediaType.ARW:
+
+            if media_file.media_type == MediaType.JPG \
+                    or media_file.media_type == MediaType.ARW \
+                    or media_file.media_type == MediaType.HEIC:
 
                 raw = ExifReader.load(media_file)
-                if raw is None:
+                if raw is None or 'Exif' not in raw:
                     continue
-                if 'Exif' not in raw:
-                    return None
 
                 exif = ExifReader.exif_to_hash(raw['Exif'], ExifTags.TAGS)
                 timestamp = ExifReader.get_timestamp_from_exif(exif, ExifReader.codec)

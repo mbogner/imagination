@@ -29,4 +29,5 @@ class Config:
         '/**/*.[mM][pP]4',
         '/**/*.[aA][vV][iI]',
         '/**/*.[aA][rR][wW]',
+        '/**/*.[hH][eE][iI][cC]',
     ]
