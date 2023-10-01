@@ -1,0 +1,1 @@
+python3 imagination.py --source ./tmp/source --target ./tmp/target --write_exif --copy_files
