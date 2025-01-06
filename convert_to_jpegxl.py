@@ -30,11 +30,12 @@ def handle_failed_file(source_path, target_path, move):
         shutil.copy2(source_path, target_path)
 
 
-def run_task(task_func, tasks, failed_log_path, move):
+def run_task(task_func, tasks):
     """Run a task in parallel using multiprocessing."""
     log_data = []
     with Pool(cpu_count()) as pool:
-        for source_file, target_file in pool.imap_unordered(task_func, tasks):
+        for result in pool.imap_unordered(task_func, tasks):
+            source_file, target_file = result
             if source_file and target_file:
                 source_size = get_file_size_in_mb(source_file)
                 target_size = get_file_size_in_mb(target_file)
@@ -50,16 +51,12 @@ def run_task(task_func, tasks, failed_log_path, move):
                     round(size_diff_percent, 2)
                 ])
                 print(f"Processed: {source_file}")
-                if move:
-                    os.remove(source_file)  # Remove source file after move
-            elif target_file:  # Failed processing
-                log_failed_file(failed_log_path, target_file, "Failed during processing.")
     return log_data
 
 
 def optimize_png_task(args):
     """Task to optimize a PNG file using optipng."""
-    source_path, target_path = args
+    source_path, target_path, move, failed_log_path = args
     try:
         shutil.copy2(source_path, target_path)  # Copy the file first
         subprocess.run(
@@ -71,15 +68,17 @@ def optimize_png_task(args):
         return source_path, target_path
     except subprocess.CalledProcessError as e:
         print(f"Error optimizing PNG file {source_path}: {e.stderr.decode()}")
+        handle_failed_file(source_path, target_path, move)
+        log_failed_file(failed_log_path, target_path, e.stderr.decode())
         return None, target_path
 
 
 def convert_to_jpegxl_task(args):
     """Task to convert a JPEG file to JPEG XL format."""
-    source_path, target_path = args
+    source_path, target_path, move, failed_log_path = args
     try:
         subprocess.run(
-            ["cjxl", source_path, target_path, "--quiet", "--lossless_jpeg=1"],
+            ["cjxl", source_path, target_path, "--quiet", "--lossless_jpeg=1", "--num_threads=2"],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -87,6 +86,8 @@ def convert_to_jpegxl_task(args):
         return source_path, target_path
     except subprocess.CalledProcessError as e:
         print(f"Error converting {source_path} to JPEG XL: {e.stderr.decode()}")
+        handle_failed_file(source_path, target_path, move)
+        log_failed_file(failed_log_path, target_path, e.stderr.decode())
         return None, target_path
 
 
@@ -122,7 +123,7 @@ def process_png(args):
 
 
 def copy_or_move(source: str, target: str, move: bool = False, resume: bool = False):
-    """Recursively copy or move files from source to target. Convert JPEG files to JPEG XL and optimize PNG files."""
+    """Recursively copy or move files from source to target."""
     if not os.path.exists(source):
         raise ValueError(f"Source folder does not exist: {source}")
 
@@ -157,19 +158,17 @@ def copy_or_move(source: str, target: str, move: bool = False, resume: bool = Fa
 
             if file.lower().endswith(('.jpg', '.jpeg')):
                 target_file = os.path.splitext(target_file)[0] + '.jxl'
-                jpeg_tasks.append((source_file, target_file))
+                jpeg_tasks.append((source_file, target_file, move, failed_log_path))
             elif file.lower().endswith('.png'):
-                png_tasks.append((source_file, target_file))
+                png_tasks.append((source_file, target_file, move, failed_log_path))
             else:
-                # Copy or move unsupported file formats without logging in `.failed`
                 if move:
                     shutil.move(source_file, target_file)
                 else:
                     shutil.copy2(source_file, target_file)
 
-    # Process JPEG and PNG tasks in parallel
-    log_data += run_task(process_jpeg, jpeg_tasks, failed_log_path, move)
-    log_data += run_task(process_png, png_tasks, failed_log_path, move)
+    log_data += run_task(process_jpeg, jpeg_tasks)
+    log_data += run_task(process_png, png_tasks)
 
     if log_data:
         write_csv_log(csv_log_file, log_data)
