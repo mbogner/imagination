@@ -51,7 +51,7 @@ source "$VENV_DIR/bin/activate"
 find "$SOURCE_DIR" -name '.DS_Store' -exec rm {} \;
 
 # Run the Python script
-if python3 convert_to_jpegxl.py "$SOURCE_DIR" "$TARGET_DIR"; then
+if python3 convert_to_jpegxl.py "$SOURCE_DIR" "$TARGET_DIR" --move; then
     echo "File processing completed successfully."
 else
     echo "Error during file processing."
