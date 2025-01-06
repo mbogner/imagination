@@ -8,7 +8,7 @@ import csv
 
 def hash_file_path(file_path: str) -> str:
     """Generate a hash for a file path to uniquely identify it in the log."""
-    return hashlib.md5(file_path.encode('utf-8')).hexdigest()
+    return hashlib.md5(file_path.encode("utf-8")).hexdigest()
 
 
 def get_file_size_in_mb(file_path: str) -> float:
@@ -16,7 +16,21 @@ def get_file_size_in_mb(file_path: str) -> float:
     return os.path.getsize(file_path) / (1024 * 1024)
 
 
-def run_task(task_func, tasks):
+def log_failed_file(failed_log_path, target_path, error_message):
+    """Log failed file processing with its error message."""
+    with open(failed_log_path, "a") as log_file:
+        log_file.write(f"{target_path}: {error_message}\n")
+
+
+def handle_failed_file(source_path, target_path, move):
+    """Copy or move the file to the target location if processing fails."""
+    if move:
+        shutil.move(source_path, target_path)
+    else:
+        shutil.copy2(source_path, target_path)
+
+
+def run_task(task_func, tasks, failed_log_path, move):
     """Run a task in parallel using multiprocessing."""
     log_data = []
     with Pool(cpu_count()) as pool:
@@ -36,6 +50,10 @@ def run_task(task_func, tasks):
                     round(size_diff_percent, 2)
                 ])
                 print(f"Processed: {source_file}")
+                if move:
+                    os.remove(source_file)  # Remove source file after move
+            elif target_file:  # Failed processing
+                log_failed_file(failed_log_path, target_file, "Failed during processing.")
     return log_data
 
 
@@ -53,7 +71,7 @@ def optimize_png_task(args):
         return source_path, target_path
     except subprocess.CalledProcessError as e:
         print(f"Error optimizing PNG file {source_path}: {e.stderr.decode()}")
-        return None, None
+        return None, target_path
 
 
 def convert_to_jpegxl_task(args):
@@ -61,7 +79,7 @@ def convert_to_jpegxl_task(args):
     source_path, target_path = args
     try:
         subprocess.run(
-            ["cjxl", source_path, target_path, "--quiet", "--lossless_jpeg=1"],
+            ["cjxl", source_path, target_path, "--quiet", "--lossless_jpeg=1", "--num_threads=2"],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -69,7 +87,7 @@ def convert_to_jpegxl_task(args):
         return source_path, target_path
     except subprocess.CalledProcessError as e:
         print(f"Error converting {source_path} to JPEG XL: {e.stderr.decode()}")
-        return None, None
+        return None, target_path
 
 
 def delete_empty_dirs(directory: str):
@@ -77,7 +95,7 @@ def delete_empty_dirs(directory: str):
     for root, dirs, _ in os.walk(directory, topdown=False):
         for dir in dirs:
             dir_path = os.path.join(root, dir)
-            if not os.listdir(dir_path):  # Check if directory is empty
+            if not os.listdir(dir_path):
                 os.rmdir(dir_path)
 
 
@@ -93,6 +111,16 @@ def write_csv_log(file_path: str, log_data: list):
         writer.writerows(log_data)
 
 
+def process_jpeg(args):
+    """Wrapper function to process JPEG tasks."""
+    return convert_to_jpegxl_task(args)
+
+
+def process_png(args):
+    """Wrapper function to process PNG tasks."""
+    return optimize_png_task(args)
+
+
 def copy_or_move(source: str, target: str, move: bool = False, resume: bool = False):
     """Recursively copy or move files from source to target. Convert JPEG files to JPEG XL and optimize PNG files."""
     if not os.path.exists(source):
@@ -101,9 +129,9 @@ def copy_or_move(source: str, target: str, move: bool = False, resume: bool = Fa
     if os.path.exists(target):
         raise ValueError(f"Target folder already exists: {target}")
 
-    # Create the target directory
     os.makedirs(target, exist_ok=True)
 
+    failed_log_path = os.path.join(target, ".failed")
     csv_log_file = os.path.join(target, "processed_files.csv")
     processed_files = set()
 
@@ -127,42 +155,22 @@ def copy_or_move(source: str, target: str, move: bool = False, resume: bool = Fa
             source_file = os.path.join(root, file)
             target_file = os.path.join(target_dir, file)
 
-            file_hash = hash_file_path(source_file)
-            if file_hash in processed_files:
-                continue
-
-            source_size = get_file_size_in_mb(source_file)
-
-            if file.lower().endswith(('.jpg', '.jpeg', '.JPG', '.JPEG')):
+            if file.lower().endswith(('.jpg', '.jpeg')):
                 target_file = os.path.splitext(target_file)[0] + '.jxl'
-                jpeg_tasks.append((source_file, target_file))  # Add to JPEG conversion tasks
-            elif file.lower().endswith(('.png', '.PNG')):
-                png_tasks.append((source_file, target_file))  # Add to PNG optimization tasks
+                jpeg_tasks.append((source_file, target_file))
+            elif file.lower().endswith('.png'):
+                png_tasks.append((source_file, target_file))
             else:
-                # Copy or move non-JPEG/PNG files
+                # Copy or move unsupported file formats without logging in `.failed`
                 if move:
                     shutil.move(source_file, target_file)
                 else:
                     shutil.copy2(source_file, target_file)
 
-                target_size = get_file_size_in_mb(target_file)
-                size_diff_percent = ((target_size - source_size) / source_size) * 100 if source_size > 0 else 0
-
-                log_data.append([
-                    file_hash,
-                    source_file,
-                    round(source_size, 2),
-                    target_file,
-                    round(target_size, 2),
-                    round(size_diff_percent, 2)
-                ])
-                print(f"Processed: {source_file}")
-
     # Process JPEG and PNG tasks in parallel
-    log_data += run_task(convert_to_jpegxl_task, jpeg_tasks)
-    log_data += run_task(optimize_png_task, png_tasks)
+    log_data += run_task(process_jpeg, jpeg_tasks, failed_log_path, move)
+    log_data += run_task(process_png, png_tasks, failed_log_path, move)
 
-    # Write CSV log
     if log_data:
         write_csv_log(csv_log_file, log_data)
 
@@ -173,25 +181,11 @@ def copy_or_move(source: str, target: str, move: bool = False, resume: bool = Fa
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Copy or move files and convert JPEGs to JPEG XL or optimize PNGs.")
-    parser.add_argument("source", type=str, help="Path to the source folder.")
-    parser.add_argument("target", type=str, help="Path to the target folder.")
-    parser.add_argument(
-        "--move",
-        action="store_true",
-        help="Move files instead of copying. Empty directories in the source will be deleted."
-    )
-    parser.add_argument(
-        "--resume",
-        action="store_true",
-        help="Resume processing from where the script left off after an error."
-    )
-
+    parser = argparse.ArgumentParser(description="Move or copy files with processing.")
+    parser.add_argument("source", type=str, help="Source directory.")
+    parser.add_argument("target", type=str, help="Target directory.")
+    parser.add_argument("--move", action="store_true", help="Move files instead of copying.")
+    parser.add_argument("--resume", action="store_true", help="Resume processing from a previous run.")
     args = parser.parse_args()
 
-    try:
-        copy_or_move(source=args.source, target=args.target, move=args.move, resume=args.resume)
-        operation = "moved" if args.move else "copied"
-        print(f"Files successfully {operation} from {args.source} to {args.target}")
-    except Exception as e:
-        print(f"Error: {e}")
+    copy_or_move(source=args.source, target=args.target, move=args.move, resume=args.resume)

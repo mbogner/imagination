@@ -2,29 +2,31 @@
 set -e
 
 usage() {
-    echo "Usage: $0 SOURCE_DIRECTORY TARGET_DIRECTORY"
+    echo "Usage: $0 SOURCE_DIRECTORY TARGET_DIRECTORY [ADDITIONAL_ARGUMENTS]"
     echo
     echo "Arguments:"
-    echo "  SOURCE_DIRECTORY   Path to the directory containing files to process."
-    echo "  TARGET_DIRECTORY   Path to the directory where processed files will be saved."
+    echo "  SOURCE_DIRECTORY       Path to the directory containing files to process."
+    echo "  TARGET_DIRECTORY       Path to the directory where processed files will be saved."
+    echo "  ADDITIONAL_ARGUMENTS   Any additional arguments to pass to the Python script."
     echo
     echo "Description:"
     echo "  This script activates a Python virtual environment, removes unwanted '.DS_Store' files"
     echo "  from the source directory, and processes files using the Python 'convert_to_jpegxl.py' script."
     echo
     echo "Example:"
-    echo "  $0 tmp/source tmp/converted"
+    echo "  $0 tmp/source tmp/converted --move --resume"
     exit 1
 }
 
 # Check arguments
-if [[ $# -ne 2 ]]; then
+if [[ $# -lt 2 ]]; then
     echo "Error: Invalid number of arguments."
     usage
 fi
 
 SOURCE_DIR="$1"
 TARGET_DIR="$2"
+shift 2  # Remove the first two arguments from $@
 
 # Ensure source directory exists
 if [[ ! -d "$SOURCE_DIR" ]]; then
@@ -51,7 +53,8 @@ source "$VENV_DIR/bin/activate"
 find "$SOURCE_DIR" -name '.DS_Store' -exec rm {} \;
 
 # Run the Python script
-if python3 convert_to_jpegxl.py "$SOURCE_DIR" "$TARGET_DIR" --move; then
+echo "python3 convert_to_jpegxl.py \"$SOURCE_DIR\" \"$TARGET_DIR\"" "$@"
+if python3 convert_to_jpegxl.py "$SOURCE_DIR" "$TARGET_DIR" "$@"; then
     echo "File processing completed successfully."
 else
     echo "Error during file processing."
