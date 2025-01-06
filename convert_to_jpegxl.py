@@ -16,6 +16,29 @@ def get_file_size_in_mb(file_path: str) -> float:
     return os.path.getsize(file_path) / (1024 * 1024)
 
 
+def run_task(task_func, tasks):
+    """Run a task in parallel using multiprocessing."""
+    log_data = []
+    with Pool(cpu_count()) as pool:
+        for source_file, target_file in pool.imap_unordered(task_func, tasks):
+            if source_file and target_file:
+                source_size = get_file_size_in_mb(source_file)
+                target_size = get_file_size_in_mb(target_file)
+                size_diff_percent = ((target_size - source_size) / source_size) * 100
+
+                file_hash = hash_file_path(source_file)
+                log_data.append([
+                    file_hash,
+                    source_file,
+                    round(source_size, 2),
+                    target_file,
+                    round(target_size, 2),
+                    round(size_diff_percent, 2)
+                ])
+                print(f"Processed: {source_file}")
+    return log_data
+
+
 def optimize_png_task(args):
     """Task to optimize a PNG file using optipng."""
     source_path, target_path = args
@@ -27,10 +50,10 @@ def optimize_png_task(args):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
-        return source_path, target_path  # Return successfully processed file and target
+        return source_path, target_path
     except subprocess.CalledProcessError as e:
         print(f"Error optimizing PNG file {source_path}: {e.stderr.decode()}")
-        return None, None  # Return None on failure
+        return None, None
 
 
 def convert_to_jpegxl_task(args):
@@ -43,10 +66,10 @@ def convert_to_jpegxl_task(args):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
-        return source_path, target_path  # Return successfully processed file and target
+        return source_path, target_path
     except subprocess.CalledProcessError as e:
         print(f"Error converting {source_path} to JPEG XL: {e.stderr.decode()}")
-        return None, None  # Return None on failure
+        return None, None
 
 
 def delete_empty_dirs(directory: str):
@@ -125,7 +148,6 @@ def copy_or_move(source: str, target: str, move: bool = False, resume: bool = Fa
                 target_size = get_file_size_in_mb(target_file)
                 size_diff_percent = ((target_size - source_size) / source_size) * 100 if source_size > 0 else 0
 
-                # Log other files
                 log_data.append([
                     file_hash,
                     source_file,
@@ -134,42 +156,11 @@ def copy_or_move(source: str, target: str, move: bool = False, resume: bool = Fa
                     round(target_size, 2),
                     round(size_diff_percent, 2)
                 ])
+                print(f"Processed: {source_file}")
 
-    # Process JPEG to JPEG XL conversions in parallel
-    with Pool(cpu_count()) as pool:
-        for source_file, target_file in pool.imap_unordered(convert_to_jpegxl_task, jpeg_tasks):
-            if source_file and target_file:
-                source_size = get_file_size_in_mb(source_file)
-                target_size = get_file_size_in_mb(target_file)
-                size_diff_percent = ((target_size - source_size) / source_size) * 100
-
-                file_hash = hash_file_path(source_file)
-                log_data.append([
-                    file_hash,
-                    source_file,
-                    round(source_size, 2),
-                    target_file,
-                    round(target_size, 2),
-                    round(size_diff_percent, 2)
-                ])
-
-    # Optimize PNG files in parallel
-    with Pool(cpu_count()) as pool:
-        for source_file, target_file in pool.imap_unordered(optimize_png_task, png_tasks):
-            if source_file and target_file:
-                source_size = get_file_size_in_mb(source_file)
-                target_size = get_file_size_in_mb(target_file)
-                size_diff_percent = ((target_size - source_size) / source_size) * 100
-
-                file_hash = hash_file_path(source_file)
-                log_data.append([
-                    file_hash,
-                    source_file,
-                    round(source_size, 2),
-                    target_file,
-                    round(target_size, 2),
-                    round(size_diff_percent, 2)
-                ])
+    # Process JPEG and PNG tasks in parallel
+    log_data += run_task(convert_to_jpegxl_task, jpeg_tasks)
+    log_data += run_task(optimize_png_task, png_tasks)
 
     # Write CSV log
     if log_data:
