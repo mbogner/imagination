@@ -61,7 +61,7 @@ def convert_to_jpegxl_task(args):
     source_path, target_path = args
     try:
         subprocess.run(
-            ["cjxl", source_path, target_path, "--quiet"],
+            ["cjxl", source_path, target_path, "--quiet", "--lossless_jpeg=1"],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
