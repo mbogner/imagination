@@ -30,14 +30,14 @@ class ExifReader:
                 return None
             return raw
         elif media_file.media_type == MediaType.HEIC:
-            with open(media_file.original_path, 'rb') as file:
-                heif = pyheif.read(file)
-                if heif is None or heif.metadata is None:
-                    return None
-                for metadata in heif.metadata:
-                    if 'type' not in metadata or 'Exif' != metadata['type'] or 'data' not in metadata:
-                        continue
-                    return piexif.load(metadata['data'])
+            # with open(media_file.original_path, 'rb') as file:
+            #     heif = pyheif.read(file)
+            #     if heif is None or heif.metadata is None:
+            #         return None
+            #     for metadata in heif.metadata:
+            #         if 'type' not in metadata or 'Exif' != metadata['type'] or 'data' not in metadata:
+            #             continue
+            #         return piexif.load(metadata['data'])
             return None
         else:
             return None
